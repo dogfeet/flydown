@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+
+require 'webrick'
+require 'rubygems'
+require 'maruku'
+
+# mime_types = WEBrick::HTTPUtils::DefaultMimeTypes
+# mime_types.store 'md', 'text/plain'
+# mime_types.store 'mdown', 'text/plain'
+# mime_types.store 'markdown', 'text/plain'
+
+class MarkdownFileHandler < WEBrick::HTTPServlet::AbstractServlet
+  def do_GET(req, res)
+    if '/' == req.path_info
+      doc = Maruku.new(IO.read('README.md'))  
+    else
+      doc = Maruku.new(IO.read('.' + req.path_info))
+    end
+
+    res.status = 200
+    res['Content-Type'] = 'text/html'
+    res.body = doc.to_html_document
+  end
+end
+
+server = WEBrick::HTTPServer.new :Port => 1234
+server.mount "/", MarkdownFileHandler, './'
+trap('INT') { server.stop }
+server.start
