@@ -2,7 +2,7 @@
 
 This is a `rEAdME` of **FLYDOWN**.
 
-* Mini web server that converts **Markdown** to **HTML** dymanically
+* Mini web server that converts **Markdown** to **HTML** on the fly
 * Index of 'Files' of `*.md` and `*.txt`
 * `readme.md` for the index page
 
