@@ -10,20 +10,52 @@ require 'maruku'
 # mime_types.store 'markdown', 'text/plain'
 
 class MarkdownFileHandler < WEBrick::HTTPServlet::AbstractServlet
+  
+  def md_index
+    md_strs = ['', '## Files']
+    Dir.entries('.').each { |f|
+      md_strs << "* [#{f}](#{f})" if File.fnmatch?('*.md', f) || File.fnmatch?('*.txt', f)
+    }
+    md_strs.join "\n"
+  end
+  
+  def doc_readme
+    Dir.entries('.').each { |f|
+      return Maruku.new(IO.read(f) + md_index) if File.fnmatch?('readme.md', f, File::FNM_CASEFOLD)
+    }
+    nil
+  end
+  
+  def doc_index
+    Maruku.new('# INDEX' + md_index)
+  end
+  
   def do_GET(req, res)
-    if '/' == req.path_info
-      doc = Maruku.new(IO.read('README.md'))  
-    else
-      doc = Maruku.new(IO.read('.' + req.path_info))
+    begin
+      if req.path_info.eql? '/'
+        doc = doc_readme
+        doc = doc_index if doc == nil
+      end
+      
+      if req.path_info.end_with? '.md'
+        doc = Maruku.new(IO.read('.' + req.path_info))
+      end
+      
+      res.status = 200
+      unless doc.nil?
+        res['Content-Type'] = 'text/html'
+        res.body = doc.to_html_document
+      else
+        res['Content-Type'] = 'text/plain'
+        res.body = IO.read('.' + req.path_info)
+      end      
+    rescue Errno::ENOENT
+      res.status = 404
     end
-
-    res.status = 200
-    res['Content-Type'] = 'text/html'
-    res.body = doc.to_html_document
   end
 end
 
-server = WEBrick::HTTPServer.new :Port => 1234
+server = WEBrick::HTTPServer.new :Port => 9900
 server.mount "/", MarkdownFileHandler, './'
 trap('INT') { server.stop }
 server.start
